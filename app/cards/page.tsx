@@ -4,10 +4,30 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { CardBoxList } from "@/components/CardBoxList";
 import { NoOppositeGenderMessage } from "@/components/NoOppositeGenderMessage";
 
-function formatDate(iso?: string | null) {
+type DeliveredCard = {
+  id: string;
+  status: string | null;
+  created_at: string;
+  viewed_at: string | null;
+  is_read: boolean;
+  manager_comment: string | null;
+  card_id: string;
+};
+
+type ProfileCard = {
+  id: string;
+  full_name: string | null;
+  job: string | null;
+  image_url: string | null;
+  age: number | null;
+  mbti: string | null;
+  gender: string;
+};
+
+function formatDate(iso?: string | null): string {
   if (!iso) return "-";
-  const d = new Date(iso);
-  return d.toLocaleDateString("ko-KR", {
+  const date = new Date(iso);
+  return date.toLocaleDateString("ko-KR", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -36,11 +56,12 @@ export default async function CardBoxPage() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  const list = Array.isArray(cards) ? cards : [];
-  const cardIds = list.map((r) => (r as { card_id?: string }).card_id).filter(Boolean) as string[];
+  const deliveredCards = (cards ?? []) as DeliveredCard[];
+  const cardIds = deliveredCards.map((card) => card.card_id);
 
   let oppositeGenderCardIds: string[] = [];
-  let profilesMap: Record<string, { id: string; full_name: string | null; job: string | null; image_url: string | null; age: number | null; mbti: string | null }> = {};
+  let profilesMap: Record<string, ProfileCard> = {};
+
   if (cardIds.length > 0) {
     try {
       const admin = createAdminClient();
@@ -49,41 +70,38 @@ export default async function CardBoxPage() {
         .select("id, full_name, job, image_url, age, mbti, gender")
         .in("id", cardIds)
         .eq("gender", oppositeGender);
-      if (Array.isArray(profiles)) {
-        oppositeGenderCardIds = profiles.map((p) => p.id);
-        profilesMap = Object.fromEntries(profiles.map((p) => [p.id, p]));
-      }
-    } catch {
-      // SERVICE_ROLE_KEY 없으면 프로필 없이 표시
+
+      const profileCards = (profiles ?? []) as ProfileCard[];
+      oppositeGenderCardIds = profileCards.map((p) => p.id);
+      profilesMap = Object.fromEntries(profileCards.map((p) => [p.id, p]));
+    } catch (error) {
+      console.error("Failed to fetch profile cards:", error);
     }
   }
 
-  const filteredList = list.filter((r) =>
-    oppositeGenderCardIds.includes((r as { card_id?: string }).card_id ?? "")
+  const filteredCards = deliveredCards.filter((card) =>
+    oppositeGenderCardIds.includes(card.card_id)
   );
 
-  const items = filteredList.map((row) => {
-    const cardId = (row as { card_id?: string }).card_id;
-    const profile = cardId ? profilesMap[cardId] : null;
+  const items = filteredCards.map((card) => {
+    const profile = profilesMap[card.card_id];
     return {
-      id: row.id,
-      status: row.status ?? "pending",
-      created_at: row.created_at,
-      viewed_at: row.viewed_at,
-      is_read: row.is_read ?? false,
-      manager_comment: row.manager_comment ?? null,
-      arrivedDateFormatted: formatDate(row.created_at),
-      viewedDateFormatted: formatDate(row.viewed_at),
-      profile: profile
-        ? {
-            id: profile.id,
-            full_name: profile.full_name ?? "",
-            job: profile.job ?? null,
-            image_url: profile.image_url ?? null,
-            age: profile.age ?? null,
-            mbti: profile.mbti ?? null,
-          }
-        : null,
+      id: card.id,
+      status: card.status ?? "pending",
+      created_at: card.created_at,
+      viewed_at: card.viewed_at,
+      is_read: card.is_read,
+      manager_comment: card.manager_comment,
+      arrivedDateFormatted: formatDate(card.created_at),
+      viewedDateFormatted: formatDate(card.viewed_at),
+      profile: profile ? {
+        id: profile.id,
+        full_name: profile.full_name ?? "",
+        job: profile.job,
+        image_url: profile.image_url,
+        age: profile.age,
+        mbti: profile.mbti,
+      } : null,
     };
   });
 

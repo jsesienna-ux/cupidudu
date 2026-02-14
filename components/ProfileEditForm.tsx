@@ -65,6 +65,7 @@ export function ProfileEditForm({
     setSaved(false);
     try {
       const supabase = createClient();
+
       const { error: profileError } = await supabase.from("user_profiles").upsert(
         {
           user_id: userId,
@@ -73,7 +74,11 @@ export function ProfileEditForm({
         },
         { onConflict: "user_id" }
       );
-      if (profileError) return;
+
+      if (profileError) {
+        console.error("Profile save error:", profileError);
+        return;
+      }
 
       if (profile.gender === "male" || profile.gender === "female") {
         await supabase.rpc("set_user_gender", {
@@ -81,6 +86,7 @@ export function ProfileEditForm({
           p_gender: profile.gender,
         });
       }
+
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } finally {

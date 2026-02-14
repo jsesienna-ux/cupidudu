@@ -7,10 +7,32 @@ export const dynamic = "force-dynamic";
 
 type PageProps = { params: Promise<{ id: string }> | { id: string } };
 
+type ProfileCard = {
+  id: string;
+  full_name: string;
+  job: string | null;
+  image_url: string | null;
+  greeting: string | null;
+  age: number | null;
+  mbti: string | null;
+  introduction: string | null;
+  company_name: string | null;
+  residence: string | null;
+  school_name: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  hobbies: string | null;
+  assets: string | null;
+  personality: string | null;
+};
+
+async function resolveParams(params: PageProps["params"]): Promise<{ id: string }> {
+  return "then" in params ? await params : params;
+}
+
 export default async function CardDetailPage({ params }: PageProps) {
-  const resolved = typeof (params as Promise<{ id: string }>).then === "function" ? await (params as Promise<{ id: string }>) : (params as { id: string });
-  const id = resolved?.id;
-  if (!id || typeof id !== "string") {
+  const { id } = await resolveParams(params);
+  if (!id) {
     notFound();
   }
   const supabase = await createClient();
@@ -31,38 +53,41 @@ export default async function CardDetailPage({ params }: PageProps) {
 
   if (error || !row) notFound();
 
-  let profile: Record<string, unknown> | null = null;
+  let profile: ProfileCard | null = null;
 
   const { data: rpcProfile, error: rpcError } = await supabase.rpc("get_delivered_card_profile", {
     p_delivered_id: id,
     p_user_id: user.id,
   });
 
-  if (!rpcError && rpcProfile && typeof rpcProfile === "object") {
-    profile = rpcProfile as Record<string, unknown>;
+  if (!rpcError && rpcProfile) {
+    profile = rpcProfile as ProfileCard;
   }
 
-  if (!profile) {
-    const cardId = (row as { card_id?: string }).card_id;
-    if (cardId) {
-      let directProfile: Record<string, unknown> | null = null;
-      try {
-        const admin = createAdminClient();
-        const res = await admin
-          .from("profile_cards")
-          .select("id, full_name, job, image_url, greeting, age, mbti, introduction, company_name, residence, school_name, height_cm, weight_kg, hobbies, assets, personality")
-          .eq("id", cardId)
-          .single();
-        if (!res.error && res.data) directProfile = res.data as Record<string, unknown>;
-      } catch {
-        const res = await supabase
-          .from("profile_cards")
-          .select("id, full_name, job, image_url, greeting, age, mbti, introduction, company_name, residence, school_name, height_cm, weight_kg, hobbies, assets, personality")
-          .eq("id", cardId)
-          .single();
-        if (!res.error && res.data) directProfile = res.data as Record<string, unknown>;
+  if (!profile && row.card_id) {
+    try {
+      const admin = createAdminClient();
+      const { data, error: adminError } = await admin
+        .from("profile_cards")
+        .select("id, full_name, job, image_url, greeting, age, mbti, introduction, company_name, residence, school_name, height_cm, weight_kg, hobbies, assets, personality")
+        .eq("id", row.card_id)
+        .single();
+
+      if (!adminError && data) {
+        profile = data as ProfileCard;
       }
-      profile = directProfile;
+    } catch (error) {
+      console.error("Failed to fetch profile with admin client:", error);
+
+      const { data, error: profileError } = await supabase
+        .from("profile_cards")
+        .select("id, full_name, job, image_url, greeting, age, mbti, introduction, company_name, residence, school_name, height_cm, weight_kg, hobbies, assets, personality")
+        .eq("id", row.card_id)
+        .single();
+
+      if (!profileError && data) {
+        profile = data as ProfileCard;
+      }
     }
   }
 
@@ -80,26 +105,9 @@ export default async function CardDetailPage({ params }: PageProps) {
     id: row.id,
     user_id: row.user_id,
     status: row.status ?? "pending",
-    manager_comment: row.manager_comment ?? null,
+    manager_comment: row.manager_comment,
     created_at: row.created_at,
-    profile: {
-      id: String(profile.id ?? ""),
-      full_name: String(profile.full_name ?? ""),
-      job: (profile.job as string | null) ?? null,
-      image_url: (profile.image_url as string | null) ?? null,
-      greeting: (profile.greeting as string | null) ?? null,
-      age: (profile.age as number | null) ?? null,
-      mbti: (profile.mbti as string | null) ?? null,
-      introduction: (profile.introduction as string | null) ?? null,
-      company_name: (profile.company_name as string | null) ?? null,
-      residence: (profile.residence as string | null) ?? null,
-      school_name: (profile.school_name as string | null) ?? null,
-      height_cm: (profile.height_cm as number | null) ?? null,
-      weight_kg: (profile.weight_kg as number | null) ?? null,
-      hobbies: (profile.hobbies as string | null) ?? null,
-      assets: (profile.assets as string | null) ?? null,
-      personality: (profile.personality as string | null) ?? null,
-    },
+    profile,
   };
 
   return (

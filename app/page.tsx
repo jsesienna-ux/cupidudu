@@ -1,15 +1,18 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { LandingWithLogin } from "@/components/LandingWithLogin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NoOppositeGenderMessage } from "@/components/NoOppositeGenderMessage";
 
+type DeliveredCard = {
+  id: string;
+  card_id: string;
+  is_read: boolean;
+};
+
 export default async function HomePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return <LandingWithLogin />;
@@ -30,8 +33,8 @@ export default async function HomePage() {
     .eq("user_id", user.id)
     .eq("is_read", false);
 
-  const list = Array.isArray(cards) ? cards : [];
-  const cardIds = list.map((r) => (r as { card_id?: string }).card_id).filter(Boolean) as string[];
+  const deliveredCards = (cards ?? []) as DeliveredCard[];
+  const cardIds = deliveredCards.map((card) => card.card_id);
 
   let oppositeGenderCardIds: string[] = [];
   if (cardIds.length > 0) {
@@ -42,14 +45,15 @@ export default async function HomePage() {
         .select("id")
         .in("id", cardIds)
         .eq("gender", oppositeGender);
-      oppositeGenderCardIds = Array.isArray(profiles) ? profiles.map((p) => p.id) : [];
-    } catch {
+      oppositeGenderCardIds = profiles?.map((p) => p.id) ?? [];
+    } catch (error) {
+      console.error("Failed to fetch opposite gender cards:", error);
       oppositeGenderCardIds = [];
     }
   }
 
-  const newCardCount = list.filter((r) =>
-    oppositeGenderCardIds.includes((r as { card_id?: string }).card_id ?? "")
+  const newCardCount = deliveredCards.filter((card) =>
+    oppositeGenderCardIds.includes(card.card_id)
   ).length;
 
   return (

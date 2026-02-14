@@ -4,11 +4,28 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { toAuthEmail } from "@/lib/auth-username";
+import { validatePassword } from "@/lib/password-validation";
 
 type Gender = "male" | "female";
 
-import { toAuthEmail } from "@/lib/auth-username";
-import { validatePassword } from "@/lib/password-validation";
+function calculateAge(year: number, month: number, day: number): number | null {
+  const birth = new Date(year, month - 1, day);
+
+  if (birth.getFullYear() !== year || birth.getMonth() !== month - 1 || birth.getDate() !== day) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+
+  return (age >= 0 && age <= 120) ? age : null;
+}
 
 export default function SignupPage() {
   const [username, setUsername] = useState("");
@@ -26,7 +43,6 @@ export default function SignupPage() {
   const [usernameChecked, setUsernameChecked] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,16 +58,9 @@ export default function SignupPage() {
       const year = parseInt(birthYear, 10);
       const month = parseInt(birthMonth, 10);
       const day = parseInt(birthDay, 10);
-      const birth = new Date(year, month - 1, day);
-      if (birth.getFullYear() !== year || birth.getMonth() !== month - 1 || birth.getDate() !== day) {
-        setError("올바른 생년월일을 선택해주세요.");
-        return;
-      }
-      const today = new Date();
-      ageNum = today.getFullYear() - birth.getFullYear();
-      const m = today.getMonth() - birth.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) ageNum -= 1;
-      if (ageNum < 0 || ageNum > 120) {
+
+      ageNum = calculateAge(year, month, day);
+      if (ageNum === null) {
         setError("올바른 생년월일을 선택해주세요.");
         return;
       }
@@ -79,19 +88,21 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
+      const supabase = createClient();
       const authEmail = toAuthEmail(trimmedUsername);
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: authEmail,
         password,
-        options: { data: { full_name: fullName } },
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: undefined,
+        },
       });
 
       if (signUpError) {
-        if (signUpError.message.toLowerCase().includes("already registered") || signUpError.message.toLowerCase().includes("already exists")) {
-          setError("이미 사용 중인 아이디입니다.");
-        } else {
-          setError(signUpError.message);
-        }
+        const message = signUpError.message.toLowerCase();
+        const isDuplicate = message.includes("already registered") || message.includes("already exists");
+        setError(isDuplicate ? "이미 사용 중인 아이디입니다." : signUpError.message);
         return;
       }
 
@@ -100,6 +111,7 @@ export default function SignupPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            userId: data.user.id,
             fullName: fullName.trim() || null,
             gender,
             age: ageNum || null,
@@ -114,6 +126,12 @@ export default function SignupPage() {
           setError(err.message ?? "프로필 저장에 실패했습니다.");
           return;
         }
+
+        await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password,
+        });
+
         router.push("/");
         router.refresh();
       }
@@ -292,9 +310,9 @@ export default function SignupPage() {
                           });
                           const data = await res.json();
                           setUsernameChecked(data.available);
-                          if (!data.available) setError(data.message ?? "이미 사용 중인 아이디예요.");
-                          else setError(null);
-                        } catch {
+                          setError(data.available ? null : (data.message ?? "이미 사용 중인 아이디예요."));
+                        } catch (err) {
+                          console.error("Username check failed:", err);
                           setUsernameChecked(false);
                           setError("확인 중 오류가 발생했어요.");
                         } finally {

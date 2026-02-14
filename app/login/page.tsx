@@ -12,21 +12,24 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
     try {
+      const supabase = createClient();
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: toAuthEmail(username),
         password,
       });
+
       if (signInError) {
-        setError(signInError.message);
+        setError("아이디 또는 비밀번호가 일치하지 않습니다.");
         return;
       }
+
       router.push("/");
       router.refresh();
     } finally {
@@ -37,7 +40,6 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
-        {/* 로고 / 브랜드 */}
         <div className="mb-10 text-center">
           <h1 className="text-3xl font-bold text-cupid-pinkDark">
             Cupidudu
@@ -47,7 +49,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* 로그인 카드 */}
         <div className="rounded-2xl border border-cupid-pinkSoft bg-white p-6 shadow-[0_4px_20px_rgba(255,107,157,0.12)]">
           <h2 className="mb-6 text-lg font-semibold text-gray-800">
             로그인

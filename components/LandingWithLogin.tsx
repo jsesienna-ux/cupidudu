@@ -12,21 +12,24 @@ export function LandingWithLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
     try {
+      const supabase = createClient();
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: toAuthEmail(username),
         password,
       });
+
       if (signInError) {
-        setError(signInError.message);
+        setError("아이디 또는 비밀번호가 일치하지 않습니다.");
         return;
       }
+
       router.push("/");
       router.refresh();
     } finally {
