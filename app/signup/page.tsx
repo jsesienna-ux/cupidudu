@@ -99,6 +99,11 @@ export default function SignupPage() {
         },
       });
 
+      if (signUpError && signUpError.message.toLowerCase().includes("rate limit")) {
+        setError("이메일 인증 횟수 제한입니다. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+
       if (signUpError) {
         const message = signUpError.message.toLowerCase();
         const isDuplicate = message.includes("already registered") || message.includes("already exists");
