@@ -223,7 +223,7 @@ export default function AdminUserDetailPage() {
               granted_at: new Date().toISOString(),
               badges: {
                 label: selected?.label ?? code,
-                category: selected?.category ?? null,
+                category: selected?.category,
                 is_public: true,
               },
             },

@@ -119,7 +119,7 @@ export function MypageDashboard({
           <div className="rounded-lg bg-cupid-cream/50 p-4 text-center">
             <p className="text-sm text-cupid-gray">새로운 카드</p>
             <p className="mt-1 text-2xl font-bold text-cupid-pinkDark">
-              {deliveredCards.filter((c) => !c.viewed).length}
+              {deliveredCards.filter((c) => !c.is_read).length}
             </p>
           </div>
         </div>

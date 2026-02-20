@@ -3,13 +3,14 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import {
+  MAX_IMAGE_SIZE_BYTES,
+  ALLOWED_IMAGE_EXTENSIONS,
+} from "@/lib/constants/images";
 
 type Props = {
   initialProfile?: Record<string, unknown> | null;
 };
-
-const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
 
 export function OnboardingDetailsForm({ initialProfile }: Props) {
   const router = useRouter();

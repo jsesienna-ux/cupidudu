@@ -5,31 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toAuthEmail } from "@/lib/auth-username";
-
-// 영어 에러 메시지를 한국어로 변환
-function translateError(message: string): string {
-  const errorMap: { [key: string]: string } = {
-    "Invalid login credentials": "아이디 또는 비밀번호가 올바르지 않습니다.",
-    "Email not confirmed": "이메일 인증이 완료되지 않았습니다.",
-    "Invalid email": "올바르지 않은 이메일 형식입니다.",
-    "User not found": "존재하지 않는 사용자입니다.",
-    "Invalid password": "비밀번호가 올바르지 않습니다.",
-  };
-
-  // 정확히 일치하는 메시지 찾기
-  if (errorMap[message]) {
-    return errorMap[message];
-  }
-
-  // 부분 일치 검색
-  for (const [eng, kor] of Object.entries(errorMap)) {
-    if (message.toLowerCase().includes(eng.toLowerCase())) {
-      return kor;
-    }
-  }
-
-  return message;
-}
+import { translateError } from "@/lib/utils/translate-error";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -49,15 +25,14 @@ export default function LoginPage() {
         password,
       });
       if (signInError) {
-        setError(translateError(signInError.message));
+        setError(translateError(signInError));
         return;
       }
       router.push("/");
       router.refresh();
     } catch (err: unknown) {
       console.error("Login error:", err);
-      const msg = err instanceof Error ? err.message : "로그인 중 오류가 발생했습니다.";
-      setError(translateError(msg));
+      setError(translateError(err));
     } finally {
       setLoading(false);
     }

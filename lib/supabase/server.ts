@@ -20,7 +20,7 @@ export async function createClient() {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, options)
@@ -50,6 +50,6 @@ function createStubServerClient() {
     from: () =>
       ({
         select: () => chain(),
-      }) as ReturnType<Awaited<ReturnType<typeof createServerClient>>["from"]>,
-  } as Awaited<ReturnType<typeof createServerClient>>;
+      }) as unknown as ReturnType<Awaited<ReturnType<typeof createServerClient>>["from"]>,
+  } as unknown as Awaited<ReturnType<typeof createServerClient>>;
 }

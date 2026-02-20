@@ -84,16 +84,15 @@ export function StoreCharge({ initialCoins }: { initialCoins: number }) {
 
       console.log("결제 요청 데이터:", { paymentId, totalAmount, orderName });
 
-      const response = await requestPayment({
+      const response = (await requestPayment({
         storeId: STORE_ID,
         channelKey: CHANNEL_KEY,
         paymentId,
-        orderId,
         orderName,
         totalAmount,
         currency,
         payMethod: "EASY_PAY",
-      });
+      })) as { code?: string; message?: string; paymentId?: string } | undefined;
 
       if (response?.code != null) {
         console.warn("[StoreCharge] 결제 실패:", response);

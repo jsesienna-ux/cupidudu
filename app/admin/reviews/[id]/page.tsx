@@ -104,6 +104,10 @@ export default function AdminReviewDetailPage() {
     BADGE_OPTIONS.find((v) => v.code === code)?.label ?? code;
 
   const grantSuggestedBadges = async () => {
+    if (!item) {
+      setMessage("데이터를 불러오지 못했습니다.");
+      return;
+    }
     const suggested = item.algorithm?.suggested_badges ?? [];
     if (suggested.length === 0) {
       setMessage("추천 배지가 없습니다.");

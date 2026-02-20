@@ -4,38 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-
-type Gender = "male" | "female";
-
 import { toAuthEmail } from "@/lib/auth-username";
 import { validatePassword } from "@/lib/password-validation";
+import { translateError } from "@/lib/utils/translate-error";
 
-// 영어 에러 메시지를 한국어로 변환
-function translateError(message: string): string {
-  const errorMap: { [key: string]: string } = {
-    "Invalid login credentials": "아이디 또는 비밀번호가 올바르지 않습니다.",
-    "Email not confirmed": "이메일 인증이 완료되지 않았습니다.",
-    "Invalid email": "올바르지 않은 이메일 형식입니다.",
-    "Password should be at least 6 characters": "비밀번호는 최소 6자 이상이어야 합니다.",
-    "User already registered": "이미 가입된 사용자입니다.",
-    "Unable to validate email address": "이메일 주소를 확인할 수 없습니다.",
-    "Signup requires a valid password": "올바른 비밀번호를 입력해주세요.",
-  };
-
-  // 정확히 일치하는 메시지 찾기
-  if (errorMap[message]) {
-    return errorMap[message];
-  }
-
-  // 부분 일치 검색
-  for (const [eng, kor] of Object.entries(errorMap)) {
-    if (message.toLowerCase().includes(eng.toLowerCase())) {
-      return kor;
-    }
-  }
-
-  return message; // 매핑되지 않은 경우 원본 반환
-}
+type Gender = "male" | "female";
 
 export default function SignupPage() {
   const [username, setUsername] = useState("");
@@ -134,8 +107,7 @@ export default function SignupPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        const errorMessage = translateError(data.message ?? "회원가입 실패");
-        setError(errorMessage);
+        setError(translateError(data.message ?? "회원가입 실패"));
         return;
       }
 
@@ -147,8 +119,7 @@ export default function SignupPage() {
       });
 
       if (signInError) {
-        const loginErrorMessage = translateError(signInError.message);
-        setError(`회원가입은 완료되었으나 자동 로그인 실패: ${loginErrorMessage}`);
+        setError(`회원가입은 완료되었으나 자동 로그인 실패: ${translateError(signInError)}`);
         setTimeout(() => router.push("/login"), 2000);
         return;
       }
@@ -159,8 +130,7 @@ export default function SignupPage() {
       router.refresh();
     } catch (err: unknown) {
       console.error("Signup error:", err);
-      const msg = err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.";
-      setError(translateError(msg));
+      setError(translateError(err));
     } finally {
       setLoading(false);
     }

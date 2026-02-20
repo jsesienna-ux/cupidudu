@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  MAX_IMAGE_SIZE_BYTES,
+  ALLOWED_IMAGE_EXTENSIONS,
+} from "@/lib/constants/images";
 
 const HIGHLIGHT_OPTIONS = [
   "금수저(집안자산 100억이상)",
@@ -14,8 +18,6 @@ const HIGHLIGHT_OPTIONS = [
   "사업가(매출 20억이상)",
   "유학파",
 ] as const;
-const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
 
 type Profile = {
   full_name: string | null;

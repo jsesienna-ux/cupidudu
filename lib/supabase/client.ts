@@ -31,5 +31,5 @@ function createStubBrowserClient() {
     },
     from: emptyFrom,
     rpc: () => Promise.resolve({ data: null, error: { message: "Supabase가 설정되지 않았습니다." } }),
-  } as ReturnType<typeof createBrowserClient>;
+  } as unknown as ReturnType<typeof createBrowserClient>;
 }
