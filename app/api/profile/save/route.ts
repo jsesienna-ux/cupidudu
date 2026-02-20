@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { selectByUserOrId, updateByUserOrId } from "@/lib/supabase/update-by-user";
 
 type ProfilePayload = {
   full_name?: string | null;
@@ -43,50 +44,21 @@ export async function POST(req: Request) {
     const profile = body.profile ?? {};
 
     const admin = createAdminClient();
-    let currentApprovalStatus: string | null = null;
-    let currentProfileStatus: string | null = null;
 
-    const { data: currentByUserId, error: currentByUserIdError } = await admin
-      .from("user_profiles")
-      .select("approval_status, profile_status")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (currentByUserIdError) {
-      const isMissingUserIdColumn = currentByUserIdError.message
-        ?.toLowerCase()
-        .includes("could not find the 'user_id' column");
-
-      if (isMissingUserIdColumn) {
-        const { data: currentById, error: currentByIdError } = await admin
-          .from("user_profiles")
-          .select("approval_status, profile_status")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        if (currentByIdError) {
-          return NextResponse.json(
-            { message: `프로필 조회 실패: ${currentByIdError.message}` },
-            { status: 500 }
-          );
-        }
-        const current = currentById as
-          | { approval_status?: string | null; profile_status?: string | null }
-          | null;
-        currentApprovalStatus = current?.approval_status ?? null;
-        currentProfileStatus = current?.profile_status ?? null;
-      } else {
-        return NextResponse.json(
-          { message: `프로필 조회 실패: ${currentByUserIdError.message}` },
-          { status: 500 }
-        );
-      }
-    } else {
-      currentApprovalStatus =
-        (currentByUserId as { approval_status?: string | null } | null)?.approval_status ?? null;
-      currentProfileStatus =
-        (currentByUserId as { profile_status?: string | null } | null)?.profile_status ?? null;
+    const { data: currentRow, error: selectError } = await selectByUserOrId(
+      admin,
+      "user_profiles",
+      user.id,
+      { columns: "approval_status, profile_status" }
+    );
+    if (selectError) {
+      return NextResponse.json(
+        { message: `프로필 조회 실패: ${selectError.message}` },
+        { status: 500 }
+      );
     }
+    const currentApprovalStatus = (currentRow?.approval_status as string | null | undefined) ?? null;
+    const currentProfileStatus = (currentRow?.profile_status as string | null | undefined) ?? null;
 
     const isApproved = isApprovedStatus(currentApprovalStatus) || isApprovedStatus(currentProfileStatus);
 
@@ -99,34 +71,17 @@ export async function POST(req: Request) {
           }
         : profile;
 
-    const { error: updateError } = await admin
-      .from("user_profiles")
-      .update(updatePayload)
-      .eq("user_id", user.id);
-
+    const { error: updateError } = await updateByUserOrId(
+      admin,
+      "user_profiles",
+      user.id,
+      updatePayload as Record<string, unknown>
+    );
     if (updateError) {
-      const isMissingUserIdColumn = updateError.message
-        ?.toLowerCase()
-        .includes("could not find the 'user_id' column");
-
-      if (isMissingUserIdColumn) {
-        const { error: retryError } = await admin
-          .from("user_profiles")
-          .update(updatePayload)
-          .eq("id", user.id);
-
-        if (retryError) {
-          return NextResponse.json(
-            { message: `프로필 저장 실패: ${retryError.message}` },
-            { status: 500 }
-          );
-        }
-      } else {
-        return NextResponse.json(
-          { message: `프로필 저장 실패: ${updateError.message}` },
-          { status: 500 }
-        );
-      }
+      return NextResponse.json(
+        { message: `프로필 저장 실패: ${updateError.message}` },
+        { status: 500 }
+      );
     }
 
     if (!isApproved && (profile.gender === "male" || profile.gender === "female")) {

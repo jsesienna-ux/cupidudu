@@ -44,20 +44,21 @@ export type UpdateByUserOptions = {
  * @returns 마지막 시도 결과
  */
 export async function updateByUserOrId(
-  client: SupabaseLikeClient,
+  client: SupabaseLikeClient | unknown,
   tableName: string,
   userId: string,
   payload: Record<string, unknown>,
   options?: UpdateByUserOptions
 ): Promise<{ data: unknown; error: { message?: string } | null }> {
   void options; // reserved for future extensibility
-  let result = await client
+  const c = client as SupabaseLikeClient;
+  let result = await c
     .from(tableName)
     .update(payload)
     .eq("user_id", userId);
 
   if (result.error && isUserIdColumnError(result.error)) {
-    result = await client.from(tableName).update(payload).eq("id", userId);
+    result = await c.from(tableName).update(payload).eq("id", userId);
   }
 
   return { data: result.data, error: result.error };
@@ -78,21 +79,22 @@ export type SelectByUserOptions = {
  * @returns 마지막 시도 결과
  */
 export async function selectByUserOrId(
-  client: SupabaseLikeClient,
+  client: SupabaseLikeClient | unknown,
   tableName: string,
   userId: string,
   options?: SelectByUserOptions
 ): Promise<{ data: Record<string, unknown> | null; error: { message?: string } | null }> {
   const columns = options?.columns ?? "*";
+  const c = client as SupabaseLikeClient;
 
-  let result = await client
+  let result = await c
     .from(tableName)
     .select(columns)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (result.error && isUserIdColumnError(result.error)) {
-    result = await client
+    result = await c
       .from(tableName)
       .select(columns)
       .eq("id", userId)

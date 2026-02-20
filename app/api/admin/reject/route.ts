@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertAdminToken, getAdminTokenFromRequest } from "@/lib/admin-api";
+import { updateByUserOrId } from "@/lib/supabase/update-by-user";
 
 export async function POST(req: Request) {
   const authError = assertAdminToken(getAdminTokenFromRequest(req));
@@ -25,15 +26,8 @@ export async function POST(req: Request) {
       last_reviewed_at: new Date().toISOString(),
     };
 
-    const { error } = await admin.from("user_profiles").update(payload).eq("user_id", userId);
-    if (error) {
-      if (error.message?.toLowerCase().includes("could not find the 'user_id' column")) {
-        const { error: retryError } = await admin.from("user_profiles").update(payload).eq("id", userId);
-        if (retryError) return NextResponse.json({ message: retryError.message }, { status: 500 });
-      } else {
-        return NextResponse.json({ message: error.message }, { status: 500 });
-      }
-    }
+    const { error } = await updateByUserOrId(admin, "user_profiles", userId, payload);
+    if (error) return NextResponse.json({ message: error.message }, { status: 500 });
 
     await admin.from("audit_log").insert({
       actor_user_id: body.actor_user_id ?? userId,

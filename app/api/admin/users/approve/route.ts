@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isValidAdminToken } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { updateByUserOrId } from "@/lib/supabase/update-by-user";
 
 const ALLOWED_GRADES = new Set(["정회원", "우수회원", "VIP회원"]);
 
@@ -39,34 +40,12 @@ export async function POST(req: Request) {
       last_reviewed_at: new Date().toISOString(),
     };
 
-    const { error } = await admin
-      .from("user_profiles")
-      .update(payload)
-      .eq("user_id", userId);
-
+    const { error } = await updateByUserOrId(admin, "user_profiles", userId, payload);
     if (error) {
-      const isMissingUserIdColumn = error.message
-        ?.toLowerCase()
-        .includes("could not find the 'user_id' column");
-
-      if (isMissingUserIdColumn) {
-        const { error: retryError } = await admin
-          .from("user_profiles")
-          .update(payload)
-          .eq("id", userId);
-
-        if (retryError) {
-          return NextResponse.json(
-            { message: `승인 처리 실패: ${retryError.message}` },
-            { status: 500 }
-          );
-        }
-      } else {
-        return NextResponse.json(
-          { message: `승인 처리 실패: ${error.message}` },
-          { status: 500 }
-        );
-      }
+      return NextResponse.json(
+        { message: `승인 처리 실패: ${error.message}` },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true, message: "승인 완료" });
