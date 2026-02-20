@@ -6,6 +6,31 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toAuthEmail } from "@/lib/auth-username";
 
+// 영어 에러 메시지를 한국어로 변환
+function translateError(message: string): string {
+  const errorMap: { [key: string]: string } = {
+    "Invalid login credentials": "아이디 또는 비밀번호가 올바르지 않습니다.",
+    "Email not confirmed": "이메일 인증이 완료되지 않았습니다.",
+    "Invalid email": "올바르지 않은 이메일 형식입니다.",
+    "User not found": "존재하지 않는 사용자입니다.",
+    "Invalid password": "비밀번호가 올바르지 않습니다.",
+  };
+
+  // 정확히 일치하는 메시지 찾기
+  if (errorMap[message]) {
+    return errorMap[message];
+  }
+
+  // 부분 일치 검색
+  for (const [eng, kor] of Object.entries(errorMap)) {
+    if (message.toLowerCase().includes(eng.toLowerCase())) {
+      return kor;
+    }
+  }
+
+  return message;
+}
+
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -24,11 +49,14 @@ export default function LoginPage() {
         password,
       });
       if (signInError) {
-        setError(signInError.message);
+        setError(translateError(signInError.message));
         return;
       }
       router.push("/");
       router.refresh();
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(translateError(err.message || "로그인 중 오류가 발생했습니다."));
     } finally {
       setLoading(false);
     }
@@ -39,8 +67,15 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* 로고 / 브랜드 */}
         <div className="mb-10 text-center">
-          <h1 className="text-3xl font-bold text-cupid-pinkDark">
-            Cupidudu
+          <h1 className="flex items-center justify-center gap-2 text-3xl font-bold text-cupid-pinkDark">
+            <span>Cupidudu</span>
+            <Link
+              href="/admin"
+              aria-label="관리자 페이지로 이동"
+              className="text-cupid-pink transition hover:text-cupid-pinkDark"
+            >
+              ❤
+            </Link>
           </h1>
           <p className="mt-2 text-sm text-cupid-gray">
             오늘의 인연을 만나보세요
@@ -118,6 +153,7 @@ export default function LoginPage() {
               회원가입
             </Link>
           </p>
+
         </div>
       </div>
     </main>

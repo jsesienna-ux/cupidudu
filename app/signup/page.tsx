@@ -10,6 +10,33 @@ type Gender = "male" | "female";
 import { toAuthEmail } from "@/lib/auth-username";
 import { validatePassword } from "@/lib/password-validation";
 
+// 영어 에러 메시지를 한국어로 변환
+function translateError(message: string): string {
+  const errorMap: { [key: string]: string } = {
+    "Invalid login credentials": "아이디 또는 비밀번호가 올바르지 않습니다.",
+    "Email not confirmed": "이메일 인증이 완료되지 않았습니다.",
+    "Invalid email": "올바르지 않은 이메일 형식입니다.",
+    "Password should be at least 6 characters": "비밀번호는 최소 6자 이상이어야 합니다.",
+    "User already registered": "이미 가입된 사용자입니다.",
+    "Unable to validate email address": "이메일 주소를 확인할 수 없습니다.",
+    "Signup requires a valid password": "올바른 비밀번호를 입력해주세요.",
+  };
+
+  // 정확히 일치하는 메시지 찾기
+  if (errorMap[message]) {
+    return errorMap[message];
+  }
+
+  // 부분 일치 검색
+  for (const [eng, kor] of Object.entries(errorMap)) {
+    if (message.toLowerCase().includes(eng.toLowerCase())) {
+      return kor;
+    }
+  }
+
+  return message; // 매핑되지 않은 경우 원본 반환
+}
+
 export default function SignupPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -34,6 +61,16 @@ export default function SignupPage() {
 
     if (!gender) {
       setError("성별을 선택해주세요.");
+      return;
+    }
+
+    if (!birthYear || !birthMonth || !birthDay) {
+      setError("생년월일을 모두 입력해주세요.");
+      return;
+    }
+
+    if (!contact.trim()) {
+      setError("연락처를 입력해주세요.");
       return;
     }
 
@@ -79,44 +116,50 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      const authEmail = toAuthEmail(trimmedUsername);
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: authEmail,
-        password,
-        options: { data: { full_name: fullName } },
+      // 서버 API로 회원가입 (이메일 제한 우회)
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: trimmedUsername,
+          password,
+          fullName: fullName.trim() || null,
+          gender,
+          age: ageNum || null,
+          contact: contact.trim() || null,
+          email: email.trim() || null,
+        }),
       });
 
-      if (signUpError) {
-        if (signUpError.message.toLowerCase().includes("already registered") || signUpError.message.toLowerCase().includes("already exists")) {
-          setError("이미 사용 중인 아이디입니다.");
-        } else {
-          setError(signUpError.message);
-        }
+      const data = await res.json();
+
+      if (!res.ok) {
+        const errorMessage = translateError(data.message ?? "회원가입 실패");
+        setError(errorMessage);
         return;
       }
 
-      if (data.user) {
-        const res = await fetch("/api/signup/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fullName: fullName.trim() || null,
-            gender,
-            age: ageNum || null,
-            contact: contact.trim() || null,
-            username: trimmedUsername,
-            email: email.trim() || null,
-          }),
-        });
+      // 회원가입 성공! 자동 로그인
+      const authEmail = toAuthEmail(trimmedUsername);
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password,
+      });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          setError(err.message ?? "프로필 저장에 실패했습니다.");
-          return;
-        }
-        router.push("/");
-        router.refresh();
+      if (signInError) {
+        const loginErrorMessage = translateError(signInError.message);
+        setError(`회원가입은 완료되었으나 자동 로그인 실패: ${loginErrorMessage}`);
+        setTimeout(() => router.push("/login"), 2000);
+        return;
       }
+
+      // 자동 로그인 성공 - 메인 페이지로 이동
+      setError(null);
+      router.push("/");
+      router.refresh();
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      setError(translateError(err.message || "알 수 없는 오류가 발생했습니다."));
     } finally {
       setLoading(false);
     }
@@ -183,11 +226,14 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">생년월일</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                생년월일 <span className="text-red-500">*</span>
+              </label>
               <div className="flex gap-2">
                 <select
                   value={birthYear}
                   onChange={(e) => setBirthYear(e.target.value)}
+                  required
                   className="flex-1 rounded-xl border border-cupid-pinkSoft bg-cupid-cream/50 px-3 py-3 text-gray-800 focus:border-cupid-pink focus:outline-none focus:ring-2 focus:ring-cupid-pink/20"
                 >
                   <option value="">연도</option>
@@ -198,6 +244,7 @@ export default function SignupPage() {
                 <select
                   value={birthMonth}
                   onChange={(e) => setBirthMonth(e.target.value)}
+                  required
                   className="flex-1 rounded-xl border border-cupid-pinkSoft bg-cupid-cream/50 px-3 py-3 text-gray-800 focus:border-cupid-pink focus:outline-none focus:ring-2 focus:ring-cupid-pink/20"
                 >
                   <option value="">월</option>
@@ -208,6 +255,7 @@ export default function SignupPage() {
                 <select
                   value={birthDay}
                   onChange={(e) => setBirthDay(e.target.value)}
+                  required
                   className="flex-1 rounded-xl border border-cupid-pinkSoft bg-cupid-cream/50 px-3 py-3 text-gray-800 focus:border-cupid-pink focus:outline-none focus:ring-2 focus:ring-cupid-pink/20"
                 >
                   <option value="">일</option>
@@ -220,7 +268,7 @@ export default function SignupPage() {
 
             <div>
               <label htmlFor="contact" className="mb-1.5 block text-sm font-medium text-gray-700">
-                연락처
+                연락처 <span className="text-red-500">*</span>
               </label>
               <input
                 id="contact"
@@ -228,6 +276,7 @@ export default function SignupPage() {
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
                 placeholder="010-1234-5678"
+                required
                 autoComplete="tel"
                 className="w-full rounded-xl border border-cupid-pinkSoft bg-cupid-cream/50 px-4 py-3 text-gray-800 placeholder:text-cupid-gray focus:border-cupid-pink focus:outline-none focus:ring-2 focus:ring-cupid-pink/20"
               />
@@ -256,7 +305,7 @@ export default function SignupPage() {
                   <label htmlFor="username" className="mb-1 block text-sm font-medium text-gray-700">
                     아이디 <span className="text-red-500">*</span>
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     <input
                       id="username"
                       type="text"
@@ -270,7 +319,7 @@ export default function SignupPage() {
                       autoComplete="username"
                       minLength={3}
                       maxLength={20}
-                      className="flex-1 rounded-xl border border-cupid-pinkSoft bg-white px-4 py-3 text-gray-800 placeholder:text-cupid-gray focus:border-cupid-pink focus:outline-none focus:ring-2 focus:ring-cupid-pink/20"
+                      className="flex-1 max-w-[85%] rounded-xl border border-cupid-pinkSoft bg-white px-4 py-3 text-gray-800 placeholder:text-cupid-gray focus:border-cupid-pink focus:outline-none focus:ring-2 focus:ring-cupid-pink/20"
                     />
                     <button
                       type="button"
@@ -301,9 +350,16 @@ export default function SignupPage() {
                           setCheckingUsername(false);
                         }
                       }}
-                      className="shrink-0 rounded-xl border border-cupid-pink bg-cupid-pinkSoft/50 px-4 py-3 text-sm font-medium text-cupid-pinkDark transition hover:bg-cupid-pinkSoft disabled:opacity-50"
+                      className="shrink-0 rounded-lg border border-cupid-pink bg-cupid-pinkSoft/50 px-2.5 py-2 text-xs font-medium text-cupid-pinkDark transition hover:bg-cupid-pinkSoft disabled:opacity-50 flex flex-col items-center justify-center leading-tight"
                     >
-                      {checkingUsername ? "확인 중" : "중복확인"}
+                      {checkingUsername ? (
+                        <span className="text-[10px]">확인 중</span>
+                      ) : (
+                        <>
+                          <span>중복</span>
+                          <span>확인</span>
+                        </>
+                      )}
                     </button>
                   </div>
                   {usernameChecked === true && (
@@ -314,6 +370,7 @@ export default function SignupPage() {
                 <div>
                   <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
                     비밀번호 <span className="text-red-500">*</span>
+                    <span className="ml-2 text-xs font-normal text-cupid-gray">(영어, 숫자, 특수문자 포함 6자이상)</span>
                   </label>
                   <input
                     id="password"

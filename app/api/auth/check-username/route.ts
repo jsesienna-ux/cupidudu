@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { toAuthEmail } from "@/lib/auth-username";
 
 export async function POST(req: Request) {
   try {
@@ -13,18 +12,11 @@ export async function POST(req: Request) {
     const admin = createAdminClient();
     const { data: profile } = await admin
       .from("user_profiles")
-      .select("user_id")
+      .select("username")
       .ilike("username", raw)
       .maybeSingle();
 
     if (profile) {
-      return NextResponse.json({ available: false, message: "이미 사용 중인 아이디예요." });
-    }
-
-    const { data: { users } } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    const authEmail = toAuthEmail(raw);
-    const authExists = users?.some((u) => u.email?.toLowerCase() === authEmail.toLowerCase());
-    if (authExists) {
       return NextResponse.json({ available: false, message: "이미 사용 중인 아이디예요." });
     }
 

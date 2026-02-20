@@ -8,6 +8,15 @@ export default async function ChatPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("introduction, job, greeting")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const hasDetailedProfile = Boolean(profile && (profile.introduction || profile.job || profile.greeting));
+  if (!hasDetailedProfile) redirect("/mypage");
+
   return (
     <main className="nav-safe min-h-dvh px-4 pb-24 pt-6">
       <div className="mx-auto max-w-lg">

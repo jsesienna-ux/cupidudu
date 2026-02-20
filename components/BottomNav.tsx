@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
   { href: "/", label: "홈", icon: "🏠" },
@@ -13,8 +15,34 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname();
   const isLoginPage = pathname === "/login";
+  const [isRestricted, setIsRestricted] = useState(false);
 
   if (isLoginPage) return null;
+
+  useEffect(() => {
+    const checkDetailedProfile = async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setIsRestricted(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("introduction, job, greeting")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const hasDetailedProfile = Boolean(profile && (profile.introduction || profile.job || profile.greeting));
+      setIsRestricted(!hasDetailedProfile);
+    };
+
+    void checkDetailedProfile();
+  }, []);
 
   return (
     <nav
@@ -26,15 +54,34 @@ export function BottomNav() {
       <div className="mx-auto flex max-w-lg items-center justify-around px-2 py-2">
         {navItems.map(({ href, label, icon }) => {
           const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
+          const isDisabled = isRestricted && href !== "/mypage";
+          const className = `flex flex-col items-center gap-0.5 rounded-xl px-4 py-2 transition-colors ${
+            isActive ? "text-cupid-pinkDark" : "text-cupid-gray hover:text-cupid-pink"
+          } ${isDisabled ? "cursor-not-allowed opacity-40 hover:text-cupid-gray" : ""}`;
+
+          if (isDisabled) {
+            return (
+              <button
+                key={href}
+                type="button"
+                disabled
+                aria-disabled
+                className={className}
+                title="상세정보 작성 후 이용 가능합니다."
+              >
+                <span className="text-xl" aria-hidden>
+                  {icon}
+                </span>
+                <span className="text-xs font-medium">{label}</span>
+              </button>
+            );
+          }
+
           return (
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center gap-0.5 rounded-xl px-4 py-2 transition-colors ${
-                isActive
-                  ? "text-cupid-pinkDark"
-                  : "text-cupid-gray hover:text-cupid-pink"
-              }`}
+              className={className}
             >
               <span className="text-xl" aria-hidden>
                 {icon}

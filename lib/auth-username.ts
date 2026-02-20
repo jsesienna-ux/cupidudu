@@ -8,7 +8,7 @@ function getAuthEmailDomain(): string {
       //
     }
   }
-  return "ykwtjurktmwuuxjjeovh.supabase.co";
+  return "popdiylqarcjylrsjpzn.supabase.co";
 }
 
 /** 로그인 시 입력값(아이디 또는 이메일)을 Supabase Auth용 이메일로 변환 */

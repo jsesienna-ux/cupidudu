@@ -39,3 +39,18 @@ body {
     opacity: 1;
   }
 }
+
+@keyframes heartBeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.25);
+  }
+}
+
+.heart-beat {
+  animation: heartBeat 0.9s ease-in-out infinite;
+  transform-origin: center;
+}

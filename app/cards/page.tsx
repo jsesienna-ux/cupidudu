@@ -21,6 +21,20 @@ export default async function CardBoxPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // 정회원 인증 체크 (상세정보 입력 여부)
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("introduction, job, greeting")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const hasDetailedProfile = profile && (profile.introduction || profile.job || profile.greeting);
+
+  // 상세정보가 없으면 마이페이지로 리다이렉트
+  if (!hasDetailedProfile) {
+    redirect("/mypage");
+  }
+
   const { data: wallet } = await supabase
     .from("user_wallets")
     .select("gender")

@@ -22,6 +22,20 @@ export default async function CardDetailPage({ params }: PageProps) {
     redirect("/login");
   }
 
+  // 정회원 인증 체크 (상세정보 입력 여부)
+  const { data: userProfile } = await supabase
+    .from("user_profiles")
+    .select("introduction, job, greeting")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const hasDetailedProfile = userProfile && (userProfile.introduction || userProfile.job || userProfile.greeting);
+
+  // 상세정보가 없으면 마이페이지로 리다이렉트
+  if (!hasDetailedProfile) {
+    redirect("/mypage");
+  }
+
   const { data: row, error } = await supabase
     .from("delivered_cards")
     .select("id, user_id, status, manager_comment, created_at, card_id")
