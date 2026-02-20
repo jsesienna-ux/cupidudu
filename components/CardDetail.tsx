@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { isInsufficientCoinError, REQUIRED_COINS_TO_UNLOCK } from "@/lib/utils/coin-errors";
 import { MatchingApplyModal } from "./MatchingApplyModal";
 import { InsufficientCoinModal } from "./InsufficientCoinModal";
 
@@ -36,19 +37,6 @@ type Card = {
   created_at?: string;
   profile: Profile;
 };
-
-function isInsufficientCoinError(error: { message?: string; code?: string }): boolean {
-  const msg = (error.message ?? "").toLowerCase();
-  const code = (error.code ?? "").toLowerCase();
-  return (
-    msg.includes("insufficient") ||
-    msg.includes("부족") ||
-    msg.includes("코인") ||
-    msg.includes("not enough") ||
-    code.includes("insufficient") ||
-    msg.includes("balance")
-  );
-}
 
 export function CardDetail({
   card,
@@ -92,8 +80,6 @@ export function CardDetail({
   const fieldsWithValue = EXTRA_FIELDS.filter((f) => f.value);
   const top3Fields = fieldsWithValue.slice(0, 3);
   const hasExtraInfo = fieldsWithValue.length > 0;
-
-  const REQUIRED_COINS = 5;
 
   const refetchCoins = async (): Promise<number> => {
     const supabase = createClient();
@@ -367,7 +353,7 @@ export function CardDetail({
                 try {
                   const coins = await refetchCoins();
                   const b = typeof coins === "number" && Number.isFinite(coins) ? coins : 0;
-                  if (b < REQUIRED_COINS) {
+                  if (b < REQUIRED_COINS_TO_UNLOCK) {
                     setInsufficientCoinOpen(true);
                   } else {
                     setModalOpen(true);

@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { isInsufficientCoinError, REQUIRED_COINS_TO_UNLOCK } from "@/lib/utils/coin-errors";
 import { MatchingApplyModal } from "./MatchingApplyModal";
 import { InsufficientCoinModal } from "./InsufficientCoinModal";
 
@@ -23,19 +24,6 @@ type CardArrivedProps = {
   mbti?: string | null;
   introduction?: string | null;
 };
-
-function isInsufficientCoinError(error: { message?: string; code?: string }): boolean {
-  const msg = (error.message ?? "").toLowerCase();
-  const code = (error.code ?? "").toLowerCase();
-  return (
-    msg.includes("insufficient") ||
-    msg.includes("부족") ||
-    msg.includes("코인") ||
-    msg.includes("not enough") ||
-    code.includes("insufficient") ||
-    msg.includes("balance")
-  );
-}
 
 function ProfileImageFallback() {
   return (
@@ -72,8 +60,6 @@ export function CardArrived({
   const applyBlur = isPending;
   const showImage =
     imageUrl != null && String(imageUrl).trim() !== "" && !imageError;
-
-  const REQUIRED_COINS = 5;
 
   const refetchCoins = async (): Promise<number> => {
     if (!userId) return 0;
@@ -122,7 +108,7 @@ export function CardArrived({
     try {
       const coins = await refetchCoins();
       const b = typeof coins === "number" && Number.isFinite(coins) ? coins : 0;
-      if (b < REQUIRED_COINS) {
+      if (b < REQUIRED_COINS_TO_UNLOCK) {
         setInsufficientModalOpen(true);
       } else {
         setConfirmModalOpen(true);
@@ -161,7 +147,7 @@ export function CardArrived({
               {applyBlur && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20">
                   <span className="text-2xl text-white/90 drop-shadow" aria-hidden>🔒</span>
-                  <span className="mt-1 text-xs font-medium text-white/90">코인 5개로 사진 잠금 해제</span>
+                  <span className="mt-1 text-xs font-medium text-white/90">코인 {REQUIRED_COINS_TO_UNLOCK}개로 사진 잠금 해제</span>
                 </div>
               )}
             </>
