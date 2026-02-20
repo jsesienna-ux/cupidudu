@@ -20,25 +20,19 @@ export function BottomNav() {
   useEffect(() => {
     const checkDetailedProfile = async () => {
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setIsRestricted(false);
         return;
       }
-
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("introduction, job, greeting")
         .eq("user_id", user.id)
         .maybeSingle();
-
       const hasDetailedProfile = Boolean(profile && (profile.introduction || profile.job || profile.greeting));
       setIsRestricted(!hasDetailedProfile);
     };
-
     void checkDetailedProfile();
   }, []);
 
@@ -47,9 +41,7 @@ export function BottomNav() {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-cupid-pinkSoft bg-white/95 backdrop-blur-sm"
-      style={{
-        paddingBottom: "max(env(safe-area-inset-bottom), 8px)",
-      }}
+      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 8px)" }}
     >
       <div className="mx-auto flex max-w-lg items-center justify-around px-2 py-2">
         {navItems.map(({ href, label, icon }) => {
@@ -58,34 +50,17 @@ export function BottomNav() {
           const className = `flex flex-col items-center gap-0.5 rounded-xl px-4 py-2 transition-colors ${
             isActive ? "text-cupid-pinkDark" : "text-cupid-gray hover:text-cupid-pink"
           } ${isDisabled ? "cursor-not-allowed opacity-40 hover:text-cupid-gray" : ""}`;
-
           if (isDisabled) {
             return (
-              <button
-                key={href}
-                type="button"
-                disabled
-                aria-disabled
-                className={className}
-                title="상세정보 작성 후 이용 가능합니다."
-              >
-                <span className="text-xl" aria-hidden>
-                  {icon}
-                </span>
+              <button key={href} type="button" disabled aria-disabled className={className} title="상세정보 작성 후 이용 가능합니다.">
+                <span className="text-xl" aria-hidden>{icon}</span>
                 <span className="text-xs font-medium">{label}</span>
               </button>
             );
           }
-
           return (
-            <Link
-              key={href}
-              href={href}
-              className={className}
-            >
-              <span className="text-xl" aria-hidden>
-                {icon}
-              </span>
+            <Link key={href} href={href} className={className}>
+              <span className="text-xl" aria-hidden>{icon}</span>
               <span className="text-xs font-medium">{label}</span>
             </Link>
           );

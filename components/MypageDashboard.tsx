@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ProfileEditForm } from "./ProfileEditForm";
-import { LogoutButton } from "./LogoutButton";
+import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 type Profile = {
   full_name: string | null;

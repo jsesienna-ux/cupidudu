@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { StoreCharge } from "@/components/StoreCharge";
+import { StoreCharge } from "@/components/store/StoreCharge";
 
 export default async function StorePage() {
   const supabase = await createClient();

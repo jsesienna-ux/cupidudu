@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CardDetail } from "@/components/CardDetail";
+import { CardDetail } from "@/components/cards/CardDetail";
 
 export const dynamic = "force-dynamic";
 

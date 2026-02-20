@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { NavWrapper } from "@/components/NavWrapper";
+import { NavWrapper } from "@/components/layout/NavWrapper";
 import { Toaster } from "sonner";
 import { createClient } from "@/lib/supabase/server";
 

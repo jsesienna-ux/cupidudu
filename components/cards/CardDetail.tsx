@@ -7,8 +7,8 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { isInsufficientCoinError, REQUIRED_COINS_TO_UNLOCK } from "@/lib/utils/coin-errors";
-import { MatchingApplyModal } from "./MatchingApplyModal";
-import { InsufficientCoinModal } from "./InsufficientCoinModal";
+import { MatchingApplyModal } from "@/components/store/MatchingApplyModal";
+import { InsufficientCoinModal } from "@/components/store/InsufficientCoinModal";
 
 type Profile = {
   id: string;

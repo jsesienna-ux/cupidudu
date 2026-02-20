@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isValidAdminToken } from "@/lib/admin";
-import { AdminDashboard } from "@/components/AdminDashboard";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
 
 type UserProfile = {
   user_id: string;

@@ -1,4 +1,4 @@
-import { CardArrived } from "./CardArrived";
+import { CardArrived } from "@/components/cards/CardArrived";
 import { CardWaiting } from "./CardWaiting";
 
 type ProfileCard = {

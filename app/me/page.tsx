@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ProfileSubmitButton } from "@/components/ProfileSubmitButton";
+import { ProfileSubmitButton } from "@/components/profile/ProfileSubmitButton";
 import { getLevelLabel, normalizeMembershipLevel, normalizeProfileStatus } from "@/lib/profile-status";
 
 type UserBadge = {

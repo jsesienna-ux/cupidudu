@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CardBoxList } from "@/components/CardBoxList";
+import { CardBoxList } from "@/components/cards/CardBoxList";
 import { NoOppositeGenderMessage } from "@/components/NoOppositeGenderMessage";
 
 function formatDate(iso?: string | null) {
