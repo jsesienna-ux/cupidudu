@@ -42,9 +42,7 @@ type Profile = {
 };
 
 export function ProfileEditForm({
-  userId,
   initialProfile,
-  userEmail,
   redirectAfterSave = false,
   onSaveSuccess,
 }: {

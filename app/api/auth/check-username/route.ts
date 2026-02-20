@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ available: true, message: "사용 가능한 아이디예요." });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ available: false, message: "확인 중 오류가 발생했어요." }, { status: 500 });
   }
 }

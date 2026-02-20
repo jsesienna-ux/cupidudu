@@ -17,8 +17,6 @@ export function BottomNav() {
   const isLoginPage = pathname === "/login";
   const [isRestricted, setIsRestricted] = useState(false);
 
-  if (isLoginPage) return null;
-
   useEffect(() => {
     const checkDetailedProfile = async () => {
       const supabase = createClient();
@@ -43,6 +41,8 @@ export function BottomNav() {
 
     void checkDetailedProfile();
   }, []);
+
+  if (isLoginPage) return null;
 
   return (
     <nav

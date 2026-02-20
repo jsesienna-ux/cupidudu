@@ -70,10 +70,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true, message: "승인 완료" });
-  } catch (error: any) {
-    return NextResponse.json(
-      { message: error?.message || "승인 처리 중 오류가 발생했습니다." },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "승인 처리 중 오류가 발생했습니다.";
+    return NextResponse.json({ message: msg }, { status: 500 });
   }
 }

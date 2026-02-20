@@ -55,9 +55,10 @@ export function LandingWithLogin() {
       }
       router.push("/");
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Login error:", err);
-      setError(translateError(err.message || "로그인 중 오류가 발생했습니다."));
+      const msg = err instanceof Error ? err.message : "로그인 중 오류가 발생했습니다.";
+      setError(translateError(msg));
     } finally {
       setLoading(false);
     }

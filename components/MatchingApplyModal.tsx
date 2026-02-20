@@ -16,7 +16,6 @@ export function MatchingApplyModal({
   onClose,
   onConfirm,
   loading = false,
-  currentCoins,
 }: MatchingApplyModalProps) {
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";

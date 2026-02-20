@@ -157,9 +157,10 @@ export default function SignupPage() {
       setError(null);
       router.push("/");
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Signup error:", err);
-      setError(translateError(err.message || "알 수 없는 오류가 발생했습니다."));
+      const msg = err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.";
+      setError(translateError(msg));
     } finally {
       setLoading(false);
     }

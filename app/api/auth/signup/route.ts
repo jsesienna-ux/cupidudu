@@ -146,8 +146,9 @@ export async function POST(req: Request) {
       message: "회원가입 성공",
       user: { id: user.id, email: authEmail, username },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Signup error:", error);
-    return NextResponse.json({ message: error.message || "서버 오류" }, { status: 500 });
+    const msg = error instanceof Error ? error.message : "서버 오류";
+    return NextResponse.json({ message: msg }, { status: 500 });
   }
 }

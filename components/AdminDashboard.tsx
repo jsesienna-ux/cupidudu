@@ -69,9 +69,7 @@ export function AdminDashboard({
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [userState, setUserState] = useState<UserProfile[]>(users);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setUserState(users);
@@ -110,62 +108,12 @@ export function AdminDashboard({
       user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const mapGradeToLevel = (grade: string): "REGULAR" | "VERIFIED" | "VIP" => {
-    if (grade === "VIP회원") return "VIP";
-    if (grade === "우수회원") return "VERIFIED";
-    return "REGULAR";
-  };
-
   const mapLevelToGrade = (level?: string | null): string | null => {
     if (!level) return null;
     if (level === "VIP") return "VIP회원";
     if (level === "VERIFIED") return "우수회원";
     if (level === "REGULAR") return "정회원";
     return null;
-  };
-
-  const levelLabel = (level?: string | null): string => {
-    if (level === "VIP") return "VIP 추천";
-    if (level === "VERIFIED") return "인증회원 추천";
-    return "정회원 추천";
-  };
-
-  const approveUser = async (userId: string, membershipGrade: string) => {
-    try {
-      setUpdatingUserId(userId);
-      setActionMessage(null);
-      const token = localStorage.getItem("admin_token");
-      const res = await fetch("/api/admin/users/approve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, userId, membershipGrade }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setActionMessage(data.message ?? "승인 처리에 실패했습니다.");
-        return;
-      }
-
-      setUserState((prev) =>
-        prev.map((u) =>
-          u.user_id === userId
-            ? {
-                ...u,
-                approval_status: "approved",
-              profile_status: "APPROVED",
-                membership_grade: membershipGrade,
-                membership_level: mapGradeToLevel(membershipGrade),
-                approved_at: new Date().toISOString(),
-              }
-            : u
-        )
-      );
-      setActionMessage(`${membershipGrade} 승인 완료`);
-    } catch {
-      setActionMessage("승인 처리 중 오류가 발생했습니다.");
-    } finally {
-      setUpdatingUserId(null);
-    }
   };
 
   const handleLogout = () => {
@@ -504,11 +452,6 @@ export function AdminDashboard({
               </div>
 
               {/* 사용자 테이블 */}
-              {actionMessage && (
-                <p className="rounded-lg bg-cupid-cream/60 px-3 py-2 text-sm text-cupid-pinkDark">
-                  {actionMessage}
-                </p>
-              )}
               <div className="overflow-x-auto rounded-lg border border-gray-200">
                 <table className="w-full">
                   <thead className="bg-gray-50">
