@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
+import { requireUser } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
 import { getLevelLabel, normalizeMembershipLevel } from "@/lib/profile-status";
 
 type PageProps = { params: { id: string } };
 
 export default async function MemberDetailPage({ params }: PageProps) {
+  await requireUser();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("public_profiles_view")

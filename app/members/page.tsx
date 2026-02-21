@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireUser } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
 import { getLevelLabel, normalizeMembershipLevel } from "@/lib/profile-status";
 
@@ -19,6 +20,7 @@ type PublicProfile = {
 };
 
 export default async function MembersPage({ searchParams }: { searchParams: SearchParams }) {
+  await requireUser();
   const supabase = await createClient();
   const page = Math.max(Number(searchParams.page ?? "1"), 1);
   const pageSize = 20;

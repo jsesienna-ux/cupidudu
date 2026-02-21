@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CardDetail } from "@/components/cards/CardDetail";
@@ -13,14 +14,8 @@ export default async function CardDetailPage({ params }: PageProps) {
   if (!id || typeof id !== "string") {
     notFound();
   }
+  const user = await requireUser();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
 
   // 정회원 인증 체크 (상세정보 입력 여부)
   const { data: userProfile } = await supabase

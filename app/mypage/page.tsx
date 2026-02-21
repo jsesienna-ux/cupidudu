@@ -1,16 +1,10 @@
-import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth/require-auth";
 import { createClient } from "@/lib/supabase/server";
 import { MypageDashboard } from "@/components/MypageDashboard";
 
 export default async function MypagePage() {
+  const user = await requireUser();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
 
   const { data: profile } = await supabase
     .from("user_profiles")
