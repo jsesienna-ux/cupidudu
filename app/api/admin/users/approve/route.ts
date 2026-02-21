@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isValidAdminToken } from "@/lib/admin";
+import { assertAdminToken, getAdminTokenFromRequest } from "@/lib/admin-api";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { updateByUserOrId } from "@/lib/supabase/update-by-user";
 
@@ -12,15 +12,13 @@ function toMembershipLevel(grade: string): "REGULAR" | "VERIFIED" | "VIP" {
 }
 
 export async function POST(req: Request) {
+  const authError = assertAdminToken(getAdminTokenFromRequest(req));
+  if (authError) return authError;
+
   try {
-    const body = await req.json();
-    const token = typeof body.token === "string" ? body.token : null;
+    const body = (await req.json()) as { userId?: string; membershipGrade?: string };
     const userId = typeof body.userId === "string" ? body.userId : "";
     const membershipGrade = typeof body.membershipGrade === "string" ? body.membershipGrade : "";
-
-    if (!isValidAdminToken(token)) {
-      return NextResponse.json({ message: "관리자 인증이 필요합니다." }, { status: 401 });
-    }
 
     if (!userId) {
       return NextResponse.json({ message: "사용자 정보가 올바르지 않습니다." }, { status: 400 });
