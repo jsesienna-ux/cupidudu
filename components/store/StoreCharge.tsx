@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { useCoins } from "@/hooks/useCoins";
 
 const STORE_ID = process.env.NEXT_PUBLIC_PORTONE_STORE_ID ?? "";
 const CHANNEL_KEY = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY ?? "";
@@ -25,7 +26,8 @@ const PACKAGES: CoinPackage[] = [
 
 export function StoreCharge({ initialCoins }: { initialCoins: number }) {
   const router = useRouter();
-  const [coins, setCoins] = useState(initialCoins);
+  const { coins: hookCoins, refresh: refreshCoins } = useCoins();
+  const coins = hookCoins !== null ? hookCoins : initialCoins;
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -137,11 +139,9 @@ export function StoreCharge({ initialCoins }: { initialCoins: number }) {
         }
 
         const newCoins = data.new_coins ?? data.new_balance;
-        if (typeof newCoins === "number") {
-          setCoins(newCoins);
-        }
         console.log("[StoreCharge] 결제 검증 완료, 코인 적립됨:", newCoins);
 
+        await refreshCoins();
         toast.success("충전이 완료되었습니다!");
         router.refresh();
         router.push("/");

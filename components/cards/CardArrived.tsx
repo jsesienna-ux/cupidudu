@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { useCoins } from "@/hooks/useCoins";
 import { isInsufficientCoinError, REQUIRED_COINS_TO_UNLOCK } from "@/lib/utils/coin-errors";
 import { MatchingApplyModal } from "@/components/store/MatchingApplyModal";
 import { InsufficientCoinModal } from "@/components/store/InsufficientCoinModal";
@@ -48,8 +49,8 @@ export function CardArrived({
   introduction,
 }: CardArrivedProps) {
   const router = useRouter();
+  const { coins: coinBalance, refresh: refreshCoins } = useCoins();
   const [imageError, setImageError] = useState(false);
-  const [coinBalance, setCoinBalance] = useState(initialCoinBalance);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [insufficientModalOpen, setInsufficientModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,24 +62,11 @@ export function CardArrived({
   const showImage =
     imageUrl != null && String(imageUrl).trim() !== "" && !imageError;
 
-  const refetchCoins = async (): Promise<number> => {
-    if (!userId) return 0;
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("user_wallets")
-      .select("coins")
-      .eq("user_id", userId)
-      .maybeSingle();
-    const coins = data != null && typeof data.coins === "number" ? data.coins : 0;
-    setCoinBalance(coins);
-    return coins;
-  };
-
   const handleMatchRequest = async () => {
     const supabase = createClient();
     setLoading(true);
 
-    const { data, error } = await supabase.rpc("unlock_profile_card", {
+    const { error } = await supabase.rpc("unlock_profile_card", {
       target_card_id: deliveredCardId,
       target_user_id: userId,
     });
@@ -95,26 +83,16 @@ export function CardArrived({
     }
 
     setLocalStatus("paid");
-    const newCoins = (data as { new_balance?: number; new_coins?: number })?.new_coins ?? (data as { new_balance?: number })?.new_balance;
-    if (typeof newCoins === "number") {
-      setCoinBalance(newCoins);
-    } else {
-      await refetchCoins();
-    }
+    await refreshCoins();
     router.refresh();
   };
 
-  const handleMatchButtonClick = async () => {
-    try {
-      const coins = await refetchCoins();
-      const b = typeof coins === "number" && Number.isFinite(coins) ? coins : 0;
-      if (b < REQUIRED_COINS_TO_UNLOCK) {
-        setInsufficientModalOpen(true);
-      } else {
-        setConfirmModalOpen(true);
-      }
-    } catch {
+  const handleMatchButtonClick = () => {
+    const b = typeof coinBalance === "number" && Number.isFinite(coinBalance) ? coinBalance : 0;
+    if (b < REQUIRED_COINS_TO_UNLOCK) {
       setInsufficientModalOpen(true);
+    } else {
+      setConfirmModalOpen(true);
     }
   };
 
@@ -266,13 +244,13 @@ export function CardArrived({
         onClose={() => setConfirmModalOpen(false)}
         onConfirm={handleMatchRequest}
         loading={loading}
-        currentCoins={coinBalance}
+        currentCoins={coinBalance ?? initialCoinBalance}
       />
 
       <InsufficientCoinModal
         open={insufficientModalOpen}
         onClose={() => setInsufficientModalOpen(false)}
-        currentCoins={coinBalance}
+        currentCoins={coinBalance ?? initialCoinBalance}
       />
     </section>
   );

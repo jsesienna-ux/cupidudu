@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { useCoins } from "@/hooks/useCoins";
 import { isInsufficientCoinError, REQUIRED_COINS_TO_UNLOCK } from "@/lib/utils/coin-errors";
 import { MatchingApplyModal } from "@/components/store/MatchingApplyModal";
 import { InsufficientCoinModal } from "@/components/store/InsufficientCoinModal";
@@ -46,8 +47,8 @@ export function CardDetail({
   initialCoinBalance?: number;
 }) {
   const router = useRouter();
+  const { coins: coinBalance, refresh: refreshCoins } = useCoins();
   const [status, setStatus] = useState(card.status);
-  const [coinBalance, setCoinBalance] = useState(initialCoinBalance);
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -81,25 +82,13 @@ export function CardDetail({
   const top3Fields = fieldsWithValue.slice(0, 3);
   const hasExtraInfo = fieldsWithValue.length > 0;
 
-  const refetchCoins = async (): Promise<number> => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("user_wallets")
-      .select("coins")
-      .eq("user_id", card.user_id)
-      .maybeSingle();
-    const coins = data != null && typeof data.coins === "number" ? data.coins : 0;
-    setCoinBalance(coins);
-    return coins;
-  };
-
   const handleUnlock = async () => {
     const supabase = createClient();
     setLoading(true);
     setSuccessMessage(null);
 
     try {
-      const { data, error } = await supabase.rpc("unlock_profile_card", {
+      const { error } = await supabase.rpc("unlock_profile_card", {
         target_card_id: card.id,
         target_user_id: card.user_id,
       });
@@ -117,12 +106,7 @@ export function CardDetail({
       }
 
       setStatus("paid");
-      const newCoins = (data as { new_balance?: number; new_coins?: number })?.new_coins ?? (data as { new_balance?: number })?.new_balance;
-      if (typeof newCoins === "number") {
-        setCoinBalance(newCoins);
-      } else {
-        await refetchCoins();
-      }
+      await refreshCoins();
       toast.success("잠금이 해제되었습니다!");
       setSuccessMessage("신청이 완료되었습니다! 곧 매니저가 채팅방을 열어드릴게요. 💌");
       router.refresh();
@@ -140,7 +124,7 @@ export function CardDetail({
         {/* 코인 잔액 표시 */}
         <div className="flex justify-end px-2 py-2">
           <span className="rounded-full bg-cupid-pinkSoft/70 px-3 py-1 text-sm font-semibold text-cupid-pinkDark">
-            🪙 {coinBalance} 코인
+            🪙 {coinBalance ?? initialCoinBalance} 코인
           </span>
         </div>
 
@@ -349,17 +333,12 @@ export function CardDetail({
         <div className="mx-auto max-w-lg">
             <button
               type="button"
-              onClick={async () => {
-                try {
-                  const coins = await refetchCoins();
-                  const b = typeof coins === "number" && Number.isFinite(coins) ? coins : 0;
-                  if (b < REQUIRED_COINS_TO_UNLOCK) {
-                    setInsufficientCoinOpen(true);
-                  } else {
-                    setModalOpen(true);
-                  }
-                } catch {
+              onClick={() => {
+                const b = typeof coinBalance === "number" && Number.isFinite(coinBalance) ? coinBalance : (coinBalance === null ? initialCoinBalance : 0);
+                if (b < REQUIRED_COINS_TO_UNLOCK) {
                   setInsufficientCoinOpen(true);
+                } else {
+                  setModalOpen(true);
                 }
               }}
               disabled={loading}
@@ -377,13 +356,13 @@ export function CardDetail({
         onClose={() => setModalOpen(false)}
         onConfirm={handleUnlock}
         loading={loading}
-        currentCoins={coinBalance}
+        currentCoins={coinBalance ?? initialCoinBalance}
       />
 
       <InsufficientCoinModal
         open={insufficientCoinOpen}
         onClose={() => setInsufficientCoinOpen(false)}
-        currentCoins={coinBalance}
+        currentCoins={coinBalance ?? initialCoinBalance}
       />
     </>
   );

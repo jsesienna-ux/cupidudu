@@ -1,48 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { useCoins } from "@/hooks/useCoins";
 
 export function Header() {
-  const [coins, setCoins] = useState<number | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-
-  const fetchBalance = async () => {
-    try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-    if (!user) {
-      setUserId(null);
-      setCoins(null);
-      return;
-    }
-    setUserId(user.id);
-    const { data } = await supabase
-      .from("user_wallets")
-      .select("coins")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    setCoins(data?.coins ?? 0);
-    } catch {
-      setUserId(null);
-      setCoins(null);
-    }
-  };
+  const { coins, isLoading, refresh } = useCoins();
 
   useEffect(() => {
-    fetchBalance();
-  }, []);
-
-  useEffect(() => {
-    const handleFocus = () => fetchBalance();
+    const handleFocus = () => void refresh();
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, []);
+  }, [refresh]);
 
-  if (userId === null) return null;
+  if (!isLoading && coins === null) return null;
 
   return (
     <header
@@ -50,7 +21,7 @@ export function Header() {
       style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
     >
       <span className="rounded-full bg-cupid-pinkSoft/70 px-3 py-1.5 text-sm font-semibold text-cupid-pinkDark">
-        🪙 {coins ?? "—"} 코인
+        🪙 {coins !== null ? coins : "—"} 코인
       </span>
       <Link
         href="/store"
