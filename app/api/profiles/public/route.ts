@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { requireUserApi } from "@/lib/auth/require-auth";
+import { ok, serverError } from "@/lib/api/response";
 import { createClient } from "@/lib/supabase/server";
 
 type PublicProfileRow = {
@@ -23,6 +25,9 @@ function parseAgeRange(ageRange: string | null): { min: number; max: number } | 
 }
 
 export async function GET(req: Request) {
+  const userOr401 = await requireUserApi();
+  if (userOr401 instanceof NextResponse) return userOr401;
+
   try {
     const url = new URL(req.url);
     const page = Math.max(Number(url.searchParams.get("page") ?? 1), 1);
@@ -48,7 +53,7 @@ export async function GET(req: Request) {
 
     const { data, error } = await query;
     if (error) {
-      return NextResponse.json({ message: error.message }, { status: 500 });
+      return serverError(error.message);
     }
 
     let filtered = (data ?? []) as PublicProfileRow[];
@@ -71,7 +76,7 @@ export async function GET(req: Request) {
     const end = start + pageSize;
     const items = filtered.slice(start, end);
 
-    return NextResponse.json({
+    return ok({
       items,
       pagination: {
         page,
@@ -81,10 +86,7 @@ export async function GET(req: Request) {
       },
     });
   } catch (error: unknown) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "공개 프로필 조회 실패" },
-      { status: 500 }
-    );
+    return serverError(error instanceof Error ? error.message : "공개 프로필 조회 실패");
   }
 }
 
