@@ -5,6 +5,21 @@
 
 ---
 
+## 0. AI 협업 운영 규칙 (요약)
+
+리팩터링·기능 작업 시 아래 원칙을 따른다. 상세는 **`docs/REFACTORING_PLAN.md` §6** 참고.
+
+| 구분 | 내용 |
+|------|------|
+| **역할 분담** | **ChatGPT/Claude** = 설계, 우선순위, 리스크 검토, 리뷰 / **Cursor** = 구현, 수정, 테스트, 커밋 |
+| **PR 단위** | 한 PR은 한 목표만. 작게 나누어 진행. |
+| **검증** | 코드 변경 PR은 반드시 `npm run lint` 및 `npm run build` 통과 후 커밋. |
+| **응답 형식** | API 실패 시 `lib/api/response.ts`(ok, fail, unauthorized, serverError) 사용. `{ message: string }` 유지. |
+| **auth** | 보호 페이지는 `requireUser()`, API는 `requireUserApi()` 우선 사용. |
+| **중복** | 동일 로직 2곳 이상이면 hook 또는 lib 유틸로 추출. |
+
+---
+
 ## 1. 정책 정의
 
 | 항목 | 내용 |
