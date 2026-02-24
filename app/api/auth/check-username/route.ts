@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ok, serverError } from "@/lib/api/response";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: Request) {
@@ -20,8 +21,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ available: false, message: "이미 사용 중인 아이디예요." });
     }
 
-    return NextResponse.json({ available: true, message: "사용 가능한 아이디예요." });
+    return ok({ available: true, message: "사용 가능한 아이디예요." });
   } catch {
-    return NextResponse.json({ available: false, message: "확인 중 오류가 발생했어요." }, { status: 500 });
+    return serverError("확인 중 오류가 발생했어요.");
   }
 }

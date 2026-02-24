@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { ok, fail, serverError } from "@/lib/api/response";
 import { toAuthEmail } from "@/lib/auth-username";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const { username, password, fullName, gender, age, contact, email } = body;
 
     if (!username || !password || !gender) {
-      return NextResponse.json({ message: "필수 항목을 입력해주세요." }, { status: 400 });
+      return fail("필수 항목을 입력해주세요.", 400);
     }
 
     const lowerUsername = username.toLowerCase();
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (existingUser) {
-      return NextResponse.json({ message: "이미 사용 중인 아이디입니다." }, { status: 400 });
+      return fail("이미 사용 중인 아이디입니다.", 400);
     }
 
     if (email) {
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
         .eq("email", email)
         .maybeSingle();
       if (existingEmail) {
-        return NextResponse.json({ message: "이미 등록된 이메일 주소입니다." }, { status: 400 });
+        return fail("이미 등록된 이메일 주소입니다.", 400);
       }
     }
 
@@ -65,10 +65,7 @@ export async function POST(req: Request) {
 
         if (rpcError) {
           console.error("RPC delete_orphan_auth_user failed:", rpcError.message);
-          return NextResponse.json(
-            { message: "계정 정리 중 오류가 발생했습니다. 관리자에게 문의해주세요." },
-            { status: 500 }
-          );
+          return serverError("계정 정리 중 오류가 발생했습니다. 관리자에게 문의해주세요.");
         }
 
         // 삭제 후 재시도
@@ -84,10 +81,7 @@ export async function POST(req: Request) {
     const user = createResult.data?.user;
     if (createResult.error || !user) {
       console.error("Auth createUser final error:", createResult.error?.message);
-      return NextResponse.json(
-        { message: "계정 생성에 실패했습니다. 다른 아이디를 시도해주세요." },
-        { status: 400 }
-      );
+      return fail("계정 생성에 실패했습니다. 다른 아이디를 시도해주세요.", 400);
     }
 
     // ── user_wallets 생성 ──
@@ -135,20 +129,13 @@ export async function POST(req: Request) {
 
     if (!profileCreated) {
       console.error("Profile error:", lastProfileError);
-      return NextResponse.json(
-        { message: "프로필 생성 실패: " + (lastProfileError?.message ?? "알 수 없는 오류") },
-        { status: 500 }
-      );
+      return serverError("프로필 생성 실패: " + (lastProfileError?.message ?? "알 수 없는 오류"));
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "회원가입 성공",
-      user: { id: user.id, email: authEmail, username },
-    });
+    return ok({ success: true, message: "회원가입 성공", user: { id: user.id, email: authEmail, username } });
   } catch (error: unknown) {
     console.error("Signup error:", error);
     const msg = error instanceof Error ? error.message : "서버 오류";
-    return NextResponse.json({ message: msg }, { status: 500 });
+    return serverError(msg);
   }
 }

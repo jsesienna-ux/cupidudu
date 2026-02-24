@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { ok, unauthorized, serverError } from "@/lib/api/response";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeMembershipLevel, normalizeProfileStatus } from "@/lib/profile-status";
 import { selectByUserOrId } from "@/lib/supabase/update-by-user";
@@ -11,7 +11,7 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ message: "로그인이 필요합니다." }, { status: 401 });
+      return unauthorized("로그인이 필요합니다.");
     }
 
     const profileColumns =
@@ -24,7 +24,7 @@ export async function GET() {
       { columns: profileColumns }
     );
     if (profileError) {
-      return NextResponse.json({ message: profileError.message }, { status: 500 });
+      return serverError(profileError.message ?? "프로필 조회 실패");
     }
 
     const { data: badgesRows, error: badgesError } = await supabase
@@ -34,7 +34,7 @@ export async function GET() {
       .order("granted_at", { ascending: false });
 
     if (badgesError) {
-      return NextResponse.json({ message: badgesError.message }, { status: 500 });
+      return serverError(badgesError.message ?? "배지 조회 실패");
     }
 
     const normalizedProfile = profile
@@ -51,15 +51,9 @@ export async function GET() {
         }
       : null;
 
-    return NextResponse.json({
-      profile: normalizedProfile,
-      badges: badgesRows ?? [],
-    });
+    return ok({ profile: normalizedProfile, badges: badgesRows ?? [] });
   } catch (error: unknown) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "내 정보 조회 실패" },
-      { status: 500 }
-    );
+    return serverError(error instanceof Error ? error.message : "내 정보 조회 실패");
   }
 }
 

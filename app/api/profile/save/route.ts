@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { ok, unauthorized, serverError } from "@/lib/api/response";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { selectByUserOrId, updateByUserOrId } from "@/lib/supabase/update-by-user";
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ message: "로그인이 필요합니다." }, { status: 401 });
+      return unauthorized("로그인이 필요합니다.");
     }
 
     const body = (await req.json()) as { profile?: ProfilePayload };
@@ -52,10 +52,7 @@ export async function POST(req: Request) {
       { columns: "approval_status, profile_status" }
     );
     if (selectError) {
-      return NextResponse.json(
-        { message: `프로필 조회 실패: ${selectError.message}` },
-        { status: 500 }
-      );
+      return serverError(`프로필 조회 실패: ${selectError.message}`);
     }
     const currentApprovalStatus = (currentRow?.approval_status as string | null | undefined) ?? null;
     const currentProfileStatus = (currentRow?.profile_status as string | null | undefined) ?? null;
@@ -78,10 +75,7 @@ export async function POST(req: Request) {
       updatePayload as Record<string, unknown>
     );
     if (updateError) {
-      return NextResponse.json(
-        { message: `프로필 저장 실패: ${updateError.message}` },
-        { status: 500 }
-      );
+      return serverError(`프로필 저장 실패: ${updateError.message}`);
     }
 
     if (!isApproved && (profile.gender === "male" || profile.gender === "female")) {
@@ -95,9 +89,9 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ success: true });
+    return ok({ success: true });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "프로필 저장 중 오류가 발생했습니다.";
-    return NextResponse.json({ message: msg }, { status: 500 });
+    return serverError(msg);
   }
 }
