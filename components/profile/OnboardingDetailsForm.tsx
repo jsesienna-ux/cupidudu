@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   MAX_IMAGE_SIZE_BYTES,
   ALLOWED_IMAGE_EXTENSIONS,
@@ -285,9 +286,15 @@ export function OnboardingDetailsForm({ initialProfile }: Props) {
           </Field>
         </div>
         <div className="mt-2 grid grid-cols-3 gap-2">
-          {facePhoto1 && <img src={facePhoto1} alt="얼굴 사진 1" className="h-24 w-full rounded-md object-cover" />}
-          {facePhoto2 && <img src={facePhoto2} alt="얼굴 사진 2" className="h-24 w-full rounded-md object-cover" />}
-          {fullBodyPhoto && <img src={fullBodyPhoto} alt="전신 사진" className="h-24 w-full rounded-md object-cover" />}
+          {facePhoto1 && (
+            <Image src={facePhoto1} alt="얼굴 사진 1" width={150} height={96} className="h-24 w-full rounded-md object-cover" unoptimized />
+          )}
+          {facePhoto2 && (
+            <Image src={facePhoto2} alt="얼굴 사진 2" width={150} height={96} className="h-24 w-full rounded-md object-cover" unoptimized />
+          )}
+          {fullBodyPhoto && (
+            <Image src={fullBodyPhoto} alt="전신 사진" width={150} height={96} className="h-24 w-full rounded-md object-cover" unoptimized />
+          )}
         </div>
       </section>
 

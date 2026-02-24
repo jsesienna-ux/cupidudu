@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   MAX_IMAGE_SIZE_BYTES,
   ALLOWED_IMAGE_EXTENSIONS,
@@ -420,10 +421,13 @@ export function ProfileEditForm({
             <div className="space-y-2">
               {profile.image_url ? (
                 <div className="overflow-hidden rounded-lg border border-cupid-pinkSoft bg-white p-2">
-                  <img
+                  <Image
                     src={profile.image_url}
                     alt="프로필 사진 미리보기"
+                    width={300}
+                    height={176}
                     className="h-44 w-full rounded-md object-cover"
+                    unoptimized
                   />
                 </div>
               ) : (
