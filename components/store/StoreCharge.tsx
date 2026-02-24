@@ -124,13 +124,7 @@ export function StoreCharge({ initialCoins }: { initialCoins: number }) {
         const data = await confirmRes.json().catch(() => ({}));
 
         if (!confirmRes.ok) {
-          const errMsg = [
-            data.error,
-            data.detail ? (typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail)) : null,
-            `(HTTP ${confirmRes.status})`,
-          ]
-            .filter(Boolean)
-            .join(" ");
+          const errMsg = [data.message ?? data.error, `(HTTP ${confirmRes.status})`].filter(Boolean).join(" ");
           console.error("[StoreCharge] confirm API 실패:", { status: confirmRes.status, data });
           setError(errMsg.trim() || "결제 확인에 실패했습니다.");
           alert(errMsg.trim() || "결제 확인에 실패했습니다.");

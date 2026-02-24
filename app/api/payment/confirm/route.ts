@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fail, unauthorized, serverError } from "@/lib/api/response";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -28,16 +29,13 @@ export async function POST(request: NextRequest) {
 
     if (!paymentId || typeof coinsToAdd !== "number" || coinsToAdd <= 0) {
       logError("잘못된 파라미터:", body);
-      return NextResponse.json(
-        { error: "paymentId, coinsToAdd(양수) 필요" },
-        { status: 400 }
-      );
+      return fail("paymentId, coinsToAdd(양수) 필요", 400);
     }
 
     const apiSecret = process.env.PORTONE_API_SECRET;
     if (!apiSecret) {
       logError("PORTONE_API_SECRET 환경 변수 누락");
-      return NextResponse.json({ error: "결제 설정 오류" }, { status: 500 });
+      return serverError("결제 설정 오류");
     }
 
     const supabase = await createClient();
@@ -46,7 +44,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
     if (!user) {
       logError("인증되지 않은 요청");
-      return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 });
+      return unauthorized("로그인이 필요합니다");
     }
 
     log("PortOne 결제 조회:", paymentId);
@@ -61,10 +59,7 @@ export async function POST(request: NextRequest) {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       logError("PortOne 조회 실패:", res.status, err);
-      return NextResponse.json(
-        { error: "결제 정보 조회 실패", detail: err },
-        { status: 402 }
-      );
+      return fail("결제 정보 조회 실패", 402);
     }
 
     const payment = await res.json();
@@ -84,18 +79,12 @@ export async function POST(request: NextRequest) {
     const requestedAmountNum = Number(requestedTotalAmount);
     if (Number.isNaN(requestedAmountNum) || paidAmount !== requestedAmountNum) {
       logError("금액 불일치 (Number 비교):", { paidAmount, requestedTotalAmount, requestedAmountNum });
-      return NextResponse.json(
-        { error: "결제 금액이 일치하지 않습니다" },
-        { status: 403 }
-      );
+      return fail("결제 금액이 일치하지 않습니다", 403);
     }
     log("금액 검증 통과:", { paidAmount, requestedAmountNum });
 
     if (status !== "PAID" && status !== "paid") {
-      return NextResponse.json(
-        { error: "결제가 완료된 건이 아닙니다", status },
-        { status: 400 }
-      );
+      return fail("결제가 완료된 건이 아닙니다", 400);
     }
 
     const expectedOrderPrefix = `coin-${user.id}-`;
@@ -112,10 +101,7 @@ export async function POST(request: NextRequest) {
         clientOrderId: clientId,
         expectedPrefix: expectedOrderPrefix,
       });
-      return NextResponse.json(
-        { error: "주문 정보가 일치하지 않습니다" },
-        { status: 403 }
-      );
+      return fail("주문 정보가 일치하지 않습니다", 403);
     }
     log("orderId 검증 통과");
 
@@ -127,10 +113,7 @@ export async function POST(request: NextRequest) {
       log("Admin 클라이언트 생성 완료 (SERVICE_ROLE_KEY 사용, RLS 우회)");
     } catch (adminErr) {
       logError("createAdminClient 실패 - SUPABASE_SERVICE_ROLE_KEY 확인:", adminErr);
-      return NextResponse.json(
-        { error: "서버 설정 오류 (SERVICE_ROLE_KEY 필요)" },
-        { status: 500 }
-      );
+      return serverError("서버 설정 오류 (SERVICE_ROLE_KEY 필요)");
     }
 
     // 멱등: 이미 처리된 결제인지 확인 (admin 사용)
@@ -146,10 +129,7 @@ export async function POST(request: NextRequest) {
         message: existingErr.message,
         hint: existingErr.hint,
       });
-      return NextResponse.json(
-        { error: "결제 기록 조회 실패", detail: existingErr.message },
-        { status: 500 }
-      );
+      return serverError("결제 기록 조회 실패");
     }
 
     if (existing) {
@@ -198,10 +178,7 @@ export async function POST(request: NextRequest) {
       if (insertErr.code === "42703") {
         logError("컬럼명 불일치 - payment_confirmations 테이블 스키마 확인 필요:", insertErr.message);
       }
-      return NextResponse.json(
-        { error: "결제 기록 실패", detail: insertErr.message },
-        { status: 500 }
-      );
+      return serverError("결제 기록 실패");
     }
     log("payment_confirmations insert 성공:", { payment_id: paymentId, user_id: user.id, coins_added: coinsToAdd, amount: paidAmount });
 
@@ -218,10 +195,7 @@ export async function POST(request: NextRequest) {
         message: walletSelErr.message,
         hint: walletSelErr.hint,
       });
-      return NextResponse.json(
-        { error: "지갑 조회 실패", detail: walletSelErr.message },
-        { status: 500 }
-      );
+      return serverError("지갑 조회 실패");
     }
 
     const currentCoins = wallet?.coins ?? 0;
@@ -242,10 +216,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         newCoins,
       });
-      return NextResponse.json(
-        { error: "코인 적립 실패", detail: upsertErr.message },
-        { status: 500 }
-      );
+      return serverError("코인 적립 실패");
     }
 
     log("user_wallets upsert 성공:", { userId: user.id, previousCoins: currentCoins, added: coinsToAdd, newCoins });
@@ -261,9 +232,6 @@ export async function POST(request: NextRequest) {
       message: err.message,
       stack: err.stack,
     });
-    return NextResponse.json(
-      { error: "결제 확인 중 오류가 발생했습니다", detail: err.message },
-      { status: 500 }
-    );
+    return serverError("결제 확인 중 오류가 발생했습니다");
   }
 }

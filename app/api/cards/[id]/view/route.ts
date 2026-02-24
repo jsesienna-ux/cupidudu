@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { fail, unauthorized, serverError, ok } from "@/lib/api/response";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(
@@ -7,7 +8,7 @@ export async function POST(
 ) {
   const { id } = await params;
   if (!id) {
-    return NextResponse.json({ error: "카드 ID 필요" }, { status: 400 });
+    return fail("카드 ID 필요", 400);
   }
 
   const supabase = await createClient();
@@ -15,7 +16,7 @@ export async function POST(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "로그인 필요" }, { status: 401 });
+    return unauthorized("로그인 필요");
   }
 
   const { error } = await supabase
@@ -29,8 +30,8 @@ export async function POST(
 
   if (error) {
     console.error("[cards/view]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError(error.message);
   }
 
-  return NextResponse.json({ success: true });
+  return ok({ success: true });
 }
